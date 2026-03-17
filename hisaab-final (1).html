@@ -1,0 +1,1595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Hisaab — Smart Invoice Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#F9F8F5;--bg2:#F2F0EB;--bg3:#E8E5DE;--surface:#FFFFFF;
+  --text:#18170F;--text2:#5C5A52;--text3:#9E9B91;
+  --accent:#18170F;--green:#1B6B3A;--green-bg:#E6F4ED;--green-border:#B8DECA;
+  --red:#B83232;--red-bg:#FDECEC;--red-border:#F0BEBE;
+  --amber:#9A5C00;--amber-bg:#FEF3E2;--amber-border:#F4D9A0;
+  --blue:#1A4FA0;--blue-bg:#EBF1FB;
+  --border:#E2DFD8;--border2:#CBC8C0;
+  --radius:10px;--radius-lg:16px;--radius-xl:22px;
+  --shadow:0 1px 3px rgba(0,0,0,0.06),0 4px 12px rgba(0,0,0,0.04);
+  --shadow-lg:0 4px 24px rgba(0,0,0,0.10);
+  --font:'DM Sans',sans-serif;--font-serif:'Instrument Serif',serif;--font-mono:'DM Mono',monospace;
+}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;}
+.app{display:flex;height:100vh;overflow:hidden;}
+.sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:transform 0.25s;}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:12px;flex-shrink:0;}
+.content{flex:1;overflow-y:auto;padding:28px;}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);}
+.logo-mark{display:flex;align-items:center;gap:10px;}
+.logo-icon{width:32px;height:32px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-family:var(--font-serif);font-size:16px;font-style:italic;}
+.logo-text{font-size:18px;font-weight:600;letter-spacing:-0.02em;}
+.logo-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.nav{padding:12px 10px;flex:1;}
+.nav-section{font-size:10px;font-weight:600;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;padding:8px 10px 4px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--radius);cursor:pointer;font-size:14px;color:var(--text2);transition:all 0.12s;margin-bottom:1px;border:none;background:none;width:100%;text-align:left;}
+.nav-item svg{opacity:0.6;flex-shrink:0;}
+.nav-item:hover{background:var(--bg2);color:var(--text);}
+.nav-item.active{background:var(--accent);color:#fff;font-weight:500;}
+.nav-item.active svg{opacity:1;}
+.sidebar-footer{padding:14px 10px;border-top:1px solid var(--border);}
+.user-card{display:flex;align-items:center;gap:10px;padding:8px 10px;}
+.user-avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:600;flex-shrink:0;}
+.user-name{font-size:13px;font-weight:500;}
+.user-plan{font-size:11px;color:var(--text3);}
+.topbar-title{font-size:16px;font-weight:600;flex:1;}
+.topbar-actions{display:flex;align-items:center;gap:8px;}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:7px 12px;min-width:200px;}
+.search-box input{background:none;border:none;outline:none;font-size:13px;color:var(--text);width:100%;font-family:var(--font);}
+.search-box input::placeholder{color:var(--text3);}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all 0.12s;font-family:var(--font);line-height:1;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:#2d2c23;transform:translateY(-1px);}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+.btn-secondary:hover{background:var(--bg2);}
+.btn-ghost{background:transparent;color:var(--text2);padding:9px 12px;}
+.btn-ghost:hover{background:var(--bg2);color:var(--text);}
+.btn-danger{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);}
+.btn-success{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-icon{padding:8px;}
+.btn:disabled{opacity:0.5;cursor:not-allowed;transform:none!important;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 22px;}
+.stat-label{font-size:12px;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:8px;}
+.stat-value{font-size:28px;font-weight:600;letter-spacing:-0.02em;line-height:1;}
+.stat-sub{font-size:12px;color:var(--text3);margin-top:6px;}
+.badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 8px;border-radius:20px;}
+.badge-green{background:var(--green-bg);color:var(--green);border:1px solid var(--green-border);}
+.badge-red{background:var(--red-bg);color:var(--red);border:1px solid var(--red-border);}
+.badge-amber{background:var(--amber-bg);color:var(--amber);border:1px solid var(--amber-border);}
+.badge-gray{background:var(--bg3);color:var(--text2);border:1px solid var(--border);}
+.badge-blue{background:var(--blue-bg);color:var(--blue);}
+.badge-purple{background:#EEEDFE;color:#534AB7;border:1px solid #CECBF6;}
+.form-group{margin-bottom:16px;}
+.form-label{display:block;font-size:12px;font-weight:500;color:var(--text2);margin-bottom:6px;}
+.form-input{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 12px;font-size:14px;color:var(--text);font-family:var(--font);outline:none;transition:all 0.12s;}
+.form-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(24,23,15,0.08);}
+.form-input::placeholder{color:var(--text3);}
+.form-input.error{border-color:var(--red);}
+.form-error{font-size:11px;color:var(--red);margin-top:4px;display:none;}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%239E9B91' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+textarea.form-input{resize:vertical;min-height:80px;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+th{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+td{padding:13px 14px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg);}
+.td-name{font-weight:500;}
+.td-amount{font-family:var(--font-mono);font-weight:500;}
+.td-id{font-family:var(--font-mono);font-size:12px;color:var(--text3);}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,10,8,0.45);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity 0.2s;padding:20px;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--surface);border-radius:var(--radius-xl);width:100%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-lg);transform:translateY(12px);transition:transform 0.2s;border:1px solid var(--border);}
+.modal-overlay.open .modal{transform:translateY(0);}
+.modal-header{padding:22px 24px 0;display:flex;align-items:flex-start;justify-content:space-between;}
+.modal-title{font-size:18px;font-weight:600;}
+.modal-sub{font-size:13px;color:var(--text3);margin-top:3px;}
+.modal-close{background:var(--bg2);border:none;width:28px;height:28px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);flex-shrink:0;margin-top:2px;}
+.modal-close:hover{background:var(--bg3);}
+.modal-body{padding:20px 24px;}
+.modal-footer{padding:0 24px 22px;display:flex;gap:8px;justify-content:flex-end;}
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:2000;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--accent);color:#fff;padding:12px 16px;border-radius:var(--radius);font-size:13px;font-weight:500;box-shadow:var(--shadow-lg);transform:translateX(120%);transition:transform 0.25s;display:flex;align-items:center;gap:8px;max-width:320px;}
+.toast.show{transform:translateX(0);}
+.toast.success{background:#1B6B3A;}
+.toast.error{background:#B83232;}
+.toast.info{background:#1A4FA0;}
+.toast.warning{background:#9A5C00;}
+.empty{text-align:center;padding:60px 20px;}
+.empty-icon{font-size:40px;margin-bottom:16px;opacity:0.35;}
+.empty-title{font-size:16px;font-weight:500;margin-bottom:6px;}
+.empty-sub{font-size:13px;color:var(--text3);margin-bottom:20px;}
+.screen{display:none;animation:fadeIn 0.15s ease;}
+.screen.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.section-title{font-size:15px;font-weight:600;}
+.activity-item{display:flex;align-items:center;gap:14px;padding:12px 0;border-bottom:1px solid var(--border);}
+.activity-item:last-child{border-bottom:none;}
+.activity-avatar{width:34px;height:34px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--text2);flex-shrink:0;}
+.activity-info{flex:1;min-width:0;}
+.activity-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.activity-desc{font-size:12px;color:var(--text3);}
+.filter-bar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.filter-btn{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;transition:all 0.12s;}
+.filter-btn:hover{background:var(--bg2);}
+.filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+.progress{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-top:8px;}
+.progress-fill{height:100%;background:var(--green);border-radius:2px;transition:width 0.5s;}
+.chart-bars{display:flex;align-items:flex-end;gap:6px;height:120px;}
+.chart-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.chart-bar{width:100%;background:var(--bg3);border-radius:3px 3px 0 0;cursor:pointer;transition:height 0.4s,background 0.2s;}
+.chart-bar:hover{background:var(--accent);}
+.chart-bar-val{font-size:10px;color:var(--text3);white-space:nowrap;}
+.chart-label{font-size:10px;color:var(--text3);}
+.client-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;}
+.client-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px;cursor:pointer;transition:all 0.12s;}
+.client-card:hover{border-color:var(--border2);box-shadow:var(--shadow);transform:translateY(-1px);}
+.client-avatar{width:42px;height:42px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:var(--text2);margin-bottom:12px;}
+.client-name{font-size:14px;font-weight:600;margin-bottom:2px;}
+.client-detail{font-size:12px;color:var(--text3);margin-bottom:10px;}
+.client-stats{display:flex;gap:14px;}
+.client-stat{font-size:11px;color:var(--text3);}
+.client-stat strong{display:block;font-size:13px;font-weight:600;color:var(--text);}
+.settings-title{font-size:14px;font-weight:600;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
+.settings-row:last-child{border-bottom:none;}
+.settings-key{font-size:13px;font-weight:500;}
+.settings-val{font-size:12px;color:var(--text3);}
+.toggle{width:40px;height:22px;background:var(--bg3);border-radius:11px;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;border:none;}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);}
+.toggle.on{background:var(--green);}
+.toggle.on::after{transform:translateX(18px);}
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;}
+.auth-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:40px;width:100%;max-width:400px;box-shadow:var(--shadow-lg);}
+.auth-title{font-size:24px;font-weight:600;letter-spacing:-0.02em;text-align:center;margin-bottom:6px;}
+.auth-sub{font-size:14px;color:var(--text3);text-align:center;margin-bottom:28px;}
+.auth-divider{display:flex;align-items:center;gap:12px;margin:18px 0;color:var(--text3);font-size:12px;}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+.inv-preview{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-xl);padding:36px;}
+.inv-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:36px;}
+.inv-logo{font-family:var(--font-serif);font-size:28px;font-style:italic;}
+.inv-meta{text-align:right;font-size:13px;color:var(--text2);}
+.inv-meta strong{display:block;font-size:18px;font-weight:600;color:var(--text);margin-bottom:4px;}
+.inv-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px;}
+.inv-party-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.08em;text-transform:uppercase;margin-bottom:6px;}
+.inv-party-name{font-size:15px;font-weight:600;margin-bottom:2px;}
+.inv-party-detail{font-size:13px;color:var(--text2);}
+.inv-items{width:100%;border-collapse:collapse;margin-bottom:24px;}
+.inv-items th{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;padding:8px 12px;background:var(--bg2);}
+.inv-items td{padding:12px;font-size:13px;border-bottom:1px solid var(--border);}
+.inv-total-box{background:var(--accent);color:#fff;border-radius:var(--radius);padding:14px 20px;text-align:right;}
+.inv-total-label{font-size:12px;opacity:0.7;margin-bottom:4px;}
+.inv-total-amount{font-size:24px;font-weight:600;font-family:var(--font-mono);}
+.inv-footer{margin-top:32px;padding-top:20px;border-top:1px solid var(--border);font-size:12px;color:var(--text3);text-align:center;}
+.page-title{font-size:22px;font-weight:700;letter-spacing:-0.02em;margin-bottom:4px;}
+.page-sub{font-size:13px;color:var(--text3);margin-bottom:24px;}
+.flex-between{display:flex;align-items:center;justify-content:space-between;}
+.text-green{color:var(--green);}
+.text-red{color:var(--red);}
+.text-amber{color:var(--amber);}
+.font-mono{font-family:var(--font-mono);}
+.truncate{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:#fff;border-radius:50%;animation:spin 0.6s linear infinite;display:inline-block;vertical-align:middle;}
+.spinner-dark{border-color:rgba(24,23,15,0.15);border-top-color:var(--text);}
+@keyframes spin{to{transform:rotate(360deg);}}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;}
+.sync-dot.syncing{background:var(--amber);animation:pulse 1s infinite;}
+.sync-dot.error{background:var(--red);}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.auto-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;background:#EEEDFE;color:#534AB7;border:1px solid #CECBF6;}
+.report-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;}
+.automation-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;margin-bottom:10px;}
+.automation-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.automation-title{font-size:14px;font-weight:500;}
+.automation-sub{font-size:12px;color:var(--text3);}
+.log-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.log-item:last-child{border-bottom:none;}
+.log-dot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+@media(max-width:768px){
+  .sidebar{position:fixed;z-index:100;transform:translateX(-100%);height:100%;}
+  .sidebar.open{transform:translateX(0);}
+  .stats-grid{grid-template-columns:1fr 1fr;}
+  .form-row{grid-template-columns:1fr;}
+  .content{padding:16px;}
+  .inv-parties{grid-template-columns:1fr;}
+  .report-grid{grid-template-columns:1fr;}
+  .client-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:480px){.client-grid{grid-template-columns:1fr;}.stats-grid{grid-template-columns:1fr 1fr;}}
+</style>
+</head>
+<body>
+
+<!-- ══ SETUP SCREEN ══ -->
+<div class="auth-screen" id="setupScreen" style="display:none;">
+  <div class="auth-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;justify-content:center;">
+      <div class="logo-icon">H</div>
+      <span style="font-size:22px;font-weight:700;letter-spacing:-0.02em;">Hisaab</span>
+    </div>
+    <div class="auth-title" style="font-size:18px;">Connect Supabase</div>
+    <div class="auth-sub" style="margin-bottom:20px;">One-time setup — takes 2 minutes</div>
+    <div style="background:var(--bg2);border-radius:var(--radius);padding:14px;margin-bottom:16px;font-size:13px;color:var(--text2);line-height:1.8;">
+      1. Go to <strong>supabase.com</strong> → New project<br/>
+      2. Run <strong>supabase_schema.sql</strong> in SQL Editor<br/>
+      3. Go to <strong>Settings → API</strong><br/>
+      4. Copy <strong>Project URL</strong> and <strong>anon key</strong>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Supabase Project URL</label>
+      <input class="form-input" id="setupUrl" placeholder="https://xxxx.supabase.co"/>
+    </div>
+    <div class="form-group" style="margin-bottom:20px;">
+      <label class="form-label">Supabase Anon Key</label>
+      <input class="form-input" id="setupKey" placeholder="eyJhbGci..."/>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" id="setupBtn" onclick="saveSupabaseConfig()">Connect & Continue</button>
+    <div class="auth-divider">or</div>
+    <button class="btn btn-secondary" style="width:100%;justify-content:center;padding:12px;" onclick="demoMode()">Use demo mode (no setup)</button>
+  </div>
+</div>
+
+<!-- ══ AUTH SCREEN ══ -->
+<div class="auth-screen" id="authScreen" style="display:none;">
+  <div class="auth-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:32px;justify-content:center;">
+      <div class="logo-icon">H</div>
+      <span style="font-size:22px;font-weight:700;letter-spacing:-0.02em;">Hisaab</span>
+    </div>
+    <div class="auth-title">Welcome back</div>
+    <div class="auth-sub">Smart invoice & payment tracker</div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="loginEmail" type="email" placeholder="you@example.com"/>
+      <div class="form-error" id="loginEmailErr">Invalid email</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="loginPass" type="password" placeholder="••••••••"/>
+      <div class="form-error" id="loginPassErr">Min 6 characters</div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" id="loginBtn" onclick="doLogin()">Sign in</button>
+    <div class="auth-divider">or</div>
+    <button class="btn btn-secondary" style="width:100%;justify-content:center;padding:12px;" onclick="showRegister()">Create account</button>
+    <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text3);">
+      <a href="#" onclick="showSetup()" style="color:var(--text3);">Change Supabase config</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══ REGISTER SCREEN ══ -->
+<div class="auth-screen" id="registerScreen" style="display:none;">
+  <div class="auth-card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:28px;justify-content:center;">
+      <div class="logo-icon">H</div>
+      <span style="font-size:22px;font-weight:700;letter-spacing:-0.02em;">Hisaab</span>
+    </div>
+    <div class="auth-title">Create account</div>
+    <div class="auth-sub">Your data is private and secure</div>
+    <div class="form-group">
+      <label class="form-label">Full name</label>
+      <input class="form-input" id="regName" placeholder="Sanskar Gupta"/>
+      <div class="form-error" id="regNameErr">Name required</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input class="form-input" id="regEmail" type="email" placeholder="you@example.com"/>
+      <div class="form-error" id="regEmailErr">Valid email required</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input class="form-input" id="regPass" type="password" placeholder="Min 6 characters"/>
+      <div class="form-error" id="regPassErr">Min 6 characters</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Freelancer type</label>
+      <select class="form-input form-select" id="regType">
+        <option value="">Select...</option>
+        <option>Tutor / Coaching</option>
+        <option>Freelance Designer</option>
+        <option>Freelance Developer</option>
+        <option>Home Services</option>
+        <option>Photographer</option>
+        <option>Consultant</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:12px;" id="regBtn" onclick="doRegister()">Create account</button>
+    <div style="text-align:center;margin-top:14px;font-size:13px;color:var(--text3);">
+      Have an account? <a href="#" onclick="showLogin()" style="color:var(--text);font-weight:500;">Sign in</a>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div class="app" id="appScreen" style="display:none;">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-mark">
+        <div class="logo-icon">H</div>
+        <div>
+          <div class="logo-text">Hisaab</div>
+          <div class="logo-sub"><span class="sync-dot" id="syncDot"></span><span id="syncLabel">Ready</span></div>
+        </div>
+      </div>
+    </div>
+    <nav class="nav">
+      <div class="nav-section">Main</div>
+      <button class="nav-item active" id="nav-dashboard" onclick="navigate('dashboard')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </button>
+      <button class="nav-item" id="nav-invoices" onclick="navigate('invoices')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>
+        Invoices
+      </button>
+      <button class="nav-item" id="nav-clients" onclick="navigate('clients')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Clients
+      </button>
+      <button class="nav-item" id="nav-automations" onclick="navigate('automations')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Automations
+      </button>
+      <button class="nav-item" id="nav-reports" onclick="navigate('reports')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        Reports
+      </button>
+      <div class="nav-section" style="margin-top:8px;">Account</div>
+      <button class="nav-item" id="nav-settings" onclick="navigate('settings')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="user-avatar" id="sidebarAvatar">SG</div>
+        <div><div class="user-name" id="sidebarName">Loading...</div><div class="user-plan" id="sidebarMode">Supabase</div></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;margin-top:6px;" onclick="doLogout()">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <button class="btn btn-ghost btn-icon" id="menuToggle" onclick="toggleSidebar()" style="display:none;">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="topbar-title" id="topbarTitle">Dashboard</div>
+      <div class="topbar-actions">
+        <div class="search-box">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" placeholder="Search invoices, clients..." id="globalSearch" oninput="handleSearch(this.value)"/>
+        </div>
+        <button class="btn btn-primary" onclick="openNewInvoice()">
+          <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          New Invoice
+        </button>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="screen active" id="screen-dashboard">
+        <div class="page-title" id="dashGreeting">Good morning</div>
+        <div class="page-sub" id="dashDate"></div>
+        <div class="stats-grid">
+          <div class="stat-card"><div class="stat-label">Outstanding</div><div class="stat-value" id="statOutstanding">₹0</div><div class="stat-sub" id="statOutstandingCount">—</div></div>
+          <div class="stat-card"><div class="stat-label">Collected (month)</div><div class="stat-value text-green" id="statCollected">₹0</div><div class="stat-sub" id="statCollectedCount">—</div></div>
+          <div class="stat-card"><div class="stat-label">Overdue</div><div class="stat-value text-red" id="statOverdue">₹0</div><div class="stat-sub" id="statOverdueCount">—</div></div>
+          <div class="stat-card"><div class="stat-label">Total Clients</div><div class="stat-value" id="statClients">0</div><div class="stat-sub" id="statClientsActive">—</div></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;" class="dash-grid">
+          <div class="card">
+            <div class="section-header"><div class="section-title">Recent invoices</div><button class="btn btn-ghost btn-sm" onclick="navigate('invoices')">View all →</button></div>
+            <div id="dashRecentInvoices"><div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;"><span class="spinner spinner-dark"></span></div></div>
+          </div>
+          <div class="card">
+            <div class="section-header"><div class="section-title">Monthly revenue</div><span class="badge badge-green" id="chartTotal">₹0</span></div>
+            <div class="chart-bars" id="revenueChart"></div>
+            <div style="display:flex;justify-content:space-around;margin-top:6px;" id="chartLabels"></div>
+          </div>
+        </div>
+        <div class="card" style="padding:16px 20px;">
+          <div class="section-title" style="margin-bottom:12px;">Quick actions</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-secondary" onclick="openNewInvoice()">+ New Invoice</button>
+            <button class="btn btn-secondary" onclick="openNewClient()">+ Add Client</button>
+            <button class="btn btn-secondary" onclick="runReminders()">⚡ Run Reminders</button>
+            <button class="btn btn-secondary" onclick="runRecurring()">🔄 Generate Recurring</button>
+            <button class="btn btn-secondary" onclick="navigate('reports')">↓ Export</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVOICES -->
+      <div class="screen" id="screen-invoices">
+        <div class="flex-between" style="margin-bottom:6px;">
+          <div><div class="page-title">Invoices</div><div class="page-sub">Manage all invoices</div></div>
+          <button class="btn btn-primary" onclick="openNewInvoice()">+ New Invoice</button>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterInvoices('all',this)">All</button>
+          <button class="filter-btn" onclick="filterInvoices('pending',this)">Pending</button>
+          <button class="filter-btn" onclick="filterInvoices('paid',this)">Paid</button>
+          <button class="filter-btn" onclick="filterInvoices('overdue',this)">Overdue</button>
+          <button class="filter-btn" onclick="filterInvoices('draft',this)">Draft</button>
+          <button class="filter-btn" onclick="filterInvoices('recurring',this)">🔄 Recurring</button>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+          <div class="table-wrap">
+            <table><thead><tr><th>Invoice #</th><th>Client</th><th>Service</th><th>Amount</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="invoicesTable"><tr><td colspan="7" style="text-align:center;padding:40px;color:var(--text3);"><span class="spinner spinner-dark"></span> Loading...</td></tr></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- CLIENTS -->
+      <div class="screen" id="screen-clients">
+        <div class="flex-between" style="margin-bottom:24px;">
+          <div><div class="page-title">Clients</div><div class="page-sub">Manage relationships</div></div>
+          <button class="btn btn-primary" onclick="openNewClient()">+ Add Client</button>
+        </div>
+        <div class="client-grid" id="clientsGrid"><div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3);"><span class="spinner spinner-dark"></span></div></div>
+      </div>
+
+      <!-- AUTOMATIONS -->
+      <div class="screen" id="screen-automations">
+        <div class="page-title">Automations</div>
+        <div class="page-sub">Smart actions that run for you</div>
+
+        <div class="automation-card">
+          <div class="automation-header">
+            <div>
+              <div class="automation-title">⚡ Payment reminders</div>
+              <div class="automation-sub">Sends a WhatsApp/SMS reminder on the invoice due date</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="badge badge-green">Active</span>
+              <button class="btn btn-secondary btn-sm" onclick="runReminders()">Run now</button>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+            Trigger: Invoice due_date = today + status = pending + reminder_sent = false<br/>
+            Action: Sends WhatsApp message via Twilio → marks reminder_sent = true
+          </div>
+        </div>
+
+        <div class="automation-card">
+          <div class="automation-header">
+            <div>
+              <div class="automation-title">🔄 Recurring invoices</div>
+              <div class="automation-sub">Auto-generates next invoice for recurring clients</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="badge badge-green">Active</span>
+              <button class="btn btn-secondary btn-sm" onclick="runRecurring()">Run now</button>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+            Trigger: Invoice is_recurring = true + recur_next_date = today<br/>
+            Action: Creates new invoice with next due date → logs creation
+          </div>
+        </div>
+
+        <div class="automation-card">
+          <div class="automation-header">
+            <div>
+              <div class="automation-title">📤 Auto-send on creation</div>
+              <div class="automation-sub">Sends invoice to client via WhatsApp when created</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span class="badge badge-green">Active</span>
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--text3);margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+            Trigger: New invoice created with status = pending<br/>
+            Action: Sends WhatsApp message to client's phone with invoice summary
+          </div>
+        </div>
+
+        <div style="margin-top:8px;" class="card">
+          <div class="section-header"><div class="section-title">Automation log</div><button class="btn btn-ghost btn-sm" onclick="loadLogs()">Refresh</button></div>
+          <div id="automationLogs"><div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">Run an automation to see logs here</div></div>
+        </div>
+
+        <div class="card" style="margin-top:10px;background:var(--amber-bg);border-color:var(--amber-border);">
+          <div style="font-size:13px;color:var(--amber);font-weight:500;margin-bottom:6px;">⚠️ WhatsApp/SMS setup needed</div>
+          <div style="font-size:12px;color:var(--amber);line-height:1.7;">
+            To send real WhatsApp messages, add your <strong>Twilio Account SID</strong> and <strong>Auth Token</strong> in Settings → Integrations. Without this, automations simulate sending and log the action only.<br/>
+            Twilio free trial gives you ₹1,200 credit — enough for ~500 messages.
+          </div>
+        </div>
+      </div>
+
+      <!-- REPORTS -->
+      <div class="screen" id="screen-reports">
+        <div class="page-title">Reports</div>
+        <div class="page-sub">Financial overview & insights</div>
+        <div class="report-grid">
+          <div class="stat-card"><div class="stat-label">Total Revenue</div><div class="stat-value text-green" id="repTotal">₹0</div><div class="stat-sub">All paid invoices</div></div>
+          <div class="stat-card"><div class="stat-label">Avg. Invoice</div><div class="stat-value" id="repAvg">₹0</div></div>
+          <div class="stat-card"><div class="stat-label">Collection Rate</div><div class="stat-value" id="repRate">0%</div><div class="progress"><div class="progress-fill" id="repRateFill" style="width:0%"></div></div></div>
+          <div class="stat-card"><div class="stat-label">Total Invoices</div><div class="stat-value" id="repCount">0</div><div class="stat-sub" id="repCountSub"></div></div>
+        </div>
+        <div class="card" style="margin-bottom:14px;">
+          <div class="section-title" style="margin-bottom:12px;">Status breakdown</div>
+          <div id="reportBreakdown" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+        </div>
+        <div class="card">
+          <div class="section-title" style="margin-bottom:12px;">Top clients by revenue</div>
+          <div id="topClientsReport"></div>
+        </div>
+        <div style="margin-top:16px;text-align:right;">
+          <button class="btn btn-secondary" onclick="exportCSV()">↓ Export CSV</button>
+          <button class="btn btn-secondary" style="margin-left:8px;" onclick="window.print()">Print</button>
+        </div>
+      </div>
+
+      <!-- SETTINGS -->
+      <div class="screen" id="screen-settings">
+        <div class="page-title">Settings</div>
+        <div class="page-sub">Account & preferences</div>
+        <div style="max-width:560px;">
+          <div class="card" style="margin-bottom:14px;">
+            <div class="settings-title">Profile</div>
+            <div class="form-group"><label class="form-label">Full name</label><input class="form-input" id="setName"/></div>
+            <div class="form-group"><label class="form-label">Business name</label><input class="form-input" id="setBiz" placeholder="Optional"/></div>
+            <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="setPhone" placeholder="+91 00000 00000"/></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">GST Number</label><input class="form-input" id="setGST" placeholder="Optional"/></div>
+            <div style="margin-top:16px;"><button class="btn btn-primary" onclick="saveProfile()">Save profile</button></div>
+          </div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="settings-title">Invoice defaults</div>
+            <div class="form-group"><label class="form-label">Payment terms</label><select class="form-input form-select" id="setTerms"><option value="7">7 days</option><option value="14">14 days</option><option value="30" selected>30 days</option><option value="45">45 days</option><option value="60">60 days</option></select></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Invoice prefix</label><input class="form-input" id="setPrefix" value="INV"/></div>
+          </div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="settings-title">Integrations</div>
+            <div class="form-group"><label class="form-label">Twilio Account SID <span style="color:var(--text3);">(for WhatsApp)</span></label><input class="form-input" id="setTwilioSid" placeholder="ACxxxxxxxxxxxxxxx"/></div>
+            <div class="form-group"><label class="form-label">Twilio Auth Token</label><input class="form-input" id="setTwilioToken" type="password" placeholder="••••••••"/></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Twilio WhatsApp number</label><input class="form-input" id="setTwilioNum" placeholder="+14155238886"/></div>
+            <div style="margin-top:16px;"><button class="btn btn-primary" onclick="saveIntegrations()">Save integrations</button></div>
+          </div>
+          <div class="card">
+            <div class="settings-title">Danger zone</div>
+            <div class="settings-row">
+              <div><div class="settings-key text-red">Delete all data</div><div class="settings-val">Permanently delete all invoices and clients</div></div>
+              <button class="btn btn-danger btn-sm" onclick="confirmDeleteAll()">Delete</button>
+            </div>
+            <div class="settings-row" style="border-bottom:none;">
+              <div><div class="settings-key">Sign out</div></div>
+              <button class="btn btn-secondary btn-sm" onclick="doLogout()">Sign out</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<!-- INVOICE MODAL -->
+<div class="modal-overlay" id="modalNewInvoice">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="invoiceModalTitle">New Invoice</div><div class="modal-sub">Fill in the details</div></div>
+      <button class="modal-close" onclick="closeModal('modalNewInvoice')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="invEditId"/>
+      <div class="form-group"><label class="form-label">Client *</label><select class="form-input form-select" id="invClient"><option value="">Select a client...</option></select><div class="form-error" id="invClientErr">Please select a client</div></div>
+      <div class="form-group"><label class="form-label">Service / Description *</label><input class="form-input" id="invService" placeholder="e.g. Web design, Tuition — March"/><div class="form-error" id="invServiceErr">Description required</div></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Amount (₹) *</label><input class="form-input" id="invAmount" type="number" min="1" placeholder="5000"/><div class="form-error" id="invAmountErr">Enter valid amount</div></div>
+        <div class="form-group"><label class="form-label">GST %</label><select class="form-input form-select" id="invGST"><option value="0">No GST</option><option value="5">5%</option><option value="12">12%</option><option value="18" selected>18%</option><option value="28">28%</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Issue Date *</label><input class="form-input" id="invIssueDate" type="date"/></div>
+        <div class="form-group"><label class="form-label">Due Date *</label><input class="form-input" id="invDueDate" type="date"/><div class="form-error" id="invDueDateErr">Must be after issue date</div></div>
+      </div>
+      <div class="form-group"><label class="form-label">Notes</label><textarea class="form-input" id="invNotes" placeholder="Optional notes for client..."></textarea></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Status</label><select class="form-input form-select" id="invStatus"><option value="pending">Pending</option><option value="paid">Paid</option><option value="draft">Draft</option></select></div>
+        <div class="form-group"><label class="form-label">Recurring</label><select class="form-input form-select" id="invRecurring"><option value="">Not recurring</option><option value="monthly">Monthly</option><option value="weekly">Weekly</option><option value="quarterly">Quarterly</option></select></div>
+      </div>
+      <div style="background:var(--blue-bg);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--blue);display:none;" id="autoSendNote">
+        📤 Invoice will be automatically sent to client via WhatsApp on save
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalNewInvoice')">Cancel</button>
+      <button class="btn btn-primary" id="saveInvBtn" onclick="saveInvoice()">Save & Send Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- VIEW INVOICE MODAL -->
+<div class="modal-overlay" id="modalViewInvoice">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header">
+      <div><div class="modal-title">Invoice Preview</div><div class="modal-sub" id="viewInvSub">—</div></div>
+      <button class="modal-close" onclick="closeModal('modalViewInvoice')">✕</button>
+    </div>
+    <div class="modal-body" id="invoicePreviewBody"></div>
+    <div class="modal-footer" id="invoicePreviewFooter"></div>
+  </div>
+</div>
+
+<!-- CLIENT MODAL -->
+<div class="modal-overlay" id="modalNewClient">
+  <div class="modal">
+    <div class="modal-header">
+      <div><div class="modal-title" id="clientModalTitle">Add Client</div><div class="modal-sub">Client details</div></div>
+      <button class="modal-close" onclick="closeModal('modalNewClient')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="clientEditId"/>
+      <div class="form-group"><label class="form-label">Full name *</label><input class="form-input" id="clientName" placeholder="Priya Sharma"/><div class="form-error" id="clientNameErr">Name required</div></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="clientEmail" type="email" placeholder="priya@example.com"/><div class="form-error" id="clientEmailErr">Invalid email</div></div>
+        <div class="form-group"><label class="form-label">Phone *</label><input class="form-input" id="clientPhone" placeholder="+91 98765 43210"/><div class="form-error" id="clientPhoneErr">Phone needed for WhatsApp</div></div>
+      </div>
+      <div class="form-group"><label class="form-label">Company</label><input class="form-input" id="clientCompany" placeholder="Optional"/></div>
+      <div class="form-group" style="margin-bottom:0;"><label class="form-label">Address</label><textarea class="form-input" id="clientAddress" placeholder="Optional" style="min-height:60px;"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('modalNewClient')">Cancel</button>
+      <button class="btn btn-primary" id="saveClientBtn" onclick="saveClient()">Save Client</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-header"><div><div class="modal-title" id="confirmTitle">Are you sure?</div></div><button class="modal-close" onclick="closeModal('modalConfirm')">✕</button></div>
+    <div class="modal-body"><p id="confirmMsg" style="font-size:14px;color:var(--text2);line-height:1.6;"></p></div>
+    <div class="modal-footer"><button class="btn btn-secondary" onclick="closeModal('modalConfirm')">Cancel</button><button class="btn btn-danger" id="confirmOkBtn">Confirm</button></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// SUPABASE INIT
+// ══════════════════════════════════════════════════════
+const { createClient } = supabase;
+let SB = null;
+let DEMO = false;
+let USER = null;
+let PROFILE = null;
+let CACHE = { invoices: [], clients: [] };
+
+function initSupabase(url, key) {
+  try {
+    SB = createClient(url, key);
+    return true;
+  } catch(e) { return false; }
+}
+
+// ══════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════
+function saveSupabaseConfig() {
+  const url = document.getElementById('setupUrl').value.trim();
+  const key = document.getElementById('setupKey').value.trim();
+  if (!url.startsWith('https://') || !key) {
+    toast('Please enter valid URL and key', 'error'); return;
+  }
+  if (!initSupabase(url, key)) {
+    toast('Invalid credentials', 'error'); return;
+  }
+  localStorage.setItem('hisaab_sb_url', url);
+  localStorage.setItem('hisaab_sb_key', key);
+  showAuthScreen();
+  toast('Supabase connected!', 'success');
+}
+
+function showSetup() {
+  hide('setupScreen', false);
+  hide('authScreen', true);
+  hide('registerScreen', true);
+  hide('appScreen', true);
+}
+function showAuthScreen() {
+  hide('setupScreen', true);
+  hide('authScreen', false);
+  hide('registerScreen', true);
+  hide('appScreen', true);
+}
+function showRegister() {
+  hide('authScreen', true);
+  hide('registerScreen', false);
+}
+function showLogin() {
+  hide('registerScreen', true);
+  hide('authScreen', false);
+}
+function hide(id, yes) { document.getElementById(id).style.display = yes ? 'none' : ''; }
+function show2(id) { document.getElementById(id).style.display = ''; }
+
+// ══════════════════════════════════════════════════════
+// AUTH
+// ══════════════════════════════════════════════════════
+function validateEmail(e) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e); }
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass  = document.getElementById('loginPass').value;
+  clearErr('loginEmailErr'); clearErr('loginPassErr');
+  if (!validateEmail(email)) { showErr('loginEmailErr'); return; }
+  if (pass.length < 6) { showErr('loginPassErr'); return; }
+  setLoading('loginBtn', true, 'Signing in...');
+  if (DEMO) { fakeLogin(email); setLoading('loginBtn', false, 'Sign in'); return; }
+  const { data, error } = await SB.auth.signInWithPassword({ email, password: pass });
+  setLoading('loginBtn', false, 'Sign in');
+  if (error) { showErr('loginEmailErr', error.message); return; }
+  USER = data.user;
+  await loadProfile();
+  await loadAllData();
+  launchApp();
+}
+
+async function doRegister() {
+  const name  = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const pass  = document.getElementById('regPass').value;
+  clearErr('regNameErr'); clearErr('regEmailErr'); clearErr('regPassErr');
+  let ok = true;
+  if (!name) { showErr('regNameErr'); ok = false; }
+  if (!validateEmail(email)) { showErr('regEmailErr'); ok = false; }
+  if (pass.length < 6) { showErr('regPassErr'); ok = false; }
+  if (!ok) return;
+  setLoading('regBtn', true, 'Creating account...');
+  if (DEMO) { fakeLogin(email, name); setLoading('regBtn', false, 'Create account'); return; }
+  const { data, error } = await SB.auth.signUp({
+    email, password: pass,
+    options: { data: { name } }
+  });
+  setLoading('regBtn', false, 'Create account');
+  if (error) { showErr('regEmailErr', error.message); return; }
+  USER = data.user;
+  await loadProfile();
+  launchApp();
+  toast('Welcome to Hisaab!', 'success');
+}
+
+function fakeLogin(email, name) {
+  USER = { id: 'demo', email };
+  PROFILE = { name: name || email.split('@')[0], inv_prefix: 'INV', inv_terms: 30 };
+  CACHE = { invoices: getDemoInvoices(), clients: getDemoClients() };
+  launchApp();
+}
+
+async function doLogout() {
+  if (!DEMO && SB) await SB.auth.signOut();
+  USER = null; PROFILE = null; CACHE = { invoices: [], clients: [] };
+  showAuthScreen();
+}
+
+function demoMode() {
+  DEMO = true;
+  USER = { id: 'demo', email: 'demo@hisaab.app' };
+  PROFILE = { name: 'Sanskar Gupta', inv_prefix: 'INV', inv_terms: 30 };
+  CACHE = { invoices: getDemoInvoices(), clients: getDemoClients() };
+  document.getElementById('setupScreen').style.display = 'none';
+  launchApp();
+}
+
+// ══════════════════════════════════════════════════════
+// DATA LAYER
+// ══════════════════════════════════════════════════════
+async function loadProfile() {
+  if (DEMO) return;
+  const { data } = await SB.from('profiles').select('*').eq('id', USER.id).single();
+  PROFILE = data || { name: USER.email, inv_prefix: 'INV', inv_terms: 30 };
+}
+
+async function loadAllData() {
+  setSyncing(true);
+  try {
+    const [invRes, clRes] = await Promise.all([
+      SB.from('invoices').select('*, clients(name,email,phone)').eq('user_id', USER.id).order('created_at', { ascending: false }),
+      SB.from('clients').select('*').eq('user_id', USER.id).order('name')
+    ]);
+    CACHE.invoices = invRes.data || [];
+    CACHE.clients  = clRes.data  || [];
+    setSyncing(false);
+  } catch(e) { setSyncing(false, true); }
+}
+
+async function dbInsert(table, obj) {
+  if (DEMO) {
+    obj.id = uid();
+    obj.created_at = new Date().toISOString();
+    if (table === 'invoices') CACHE.invoices.unshift(obj);
+    if (table === 'clients')  CACHE.clients.push(obj);
+    return { data: obj, error: null };
+  }
+  const { data, error } = await SB.from(table).insert(obj).select().single();
+  return { data, error };
+}
+
+async function dbUpdate(table, id, obj) {
+  if (DEMO) {
+    if (table === 'invoices') { const i = CACHE.invoices.findIndex(x => x.id === id); if(i>=0) CACHE.invoices[i] = {...CACHE.invoices[i], ...obj}; }
+    if (table === 'clients')  { const i = CACHE.clients.findIndex(x => x.id === id);  if(i>=0) CACHE.clients[i]  = {...CACHE.clients[i],  ...obj}; }
+    return { error: null };
+  }
+  const { error } = await SB.from(table).update(obj).eq('id', id);
+  return { error };
+}
+
+async function dbDelete(table, id) {
+  if (DEMO) {
+    if (table === 'invoices') CACHE.invoices = CACHE.invoices.filter(x => x.id !== id);
+    if (table === 'clients')  CACHE.clients  = CACHE.clients.filter(x => x.id !== id);
+    return { error: null };
+  }
+  const { error } = await SB.from(table).delete().eq('id', id);
+  return { error };
+}
+
+// ══════════════════════════════════════════════════════
+// LAUNCH APP
+// ══════════════════════════════════════════════════════
+function launchApp() {
+  document.getElementById('setupScreen').style.display    = 'none';
+  document.getElementById('authScreen').style.display     = 'none';
+  document.getElementById('registerScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display      = 'flex';
+  const name = PROFILE?.name || USER?.email || 'there';
+  document.getElementById('sidebarName').textContent = name;
+  document.getElementById('sidebarAvatar').textContent = initials(name);
+  document.getElementById('sidebarMode').textContent = DEMO ? 'Demo mode' : 'Supabase ✓';
+  const h = new Date().getHours();
+  const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('dashGreeting').textContent = g + ', ' + name.split(' ')[0];
+  document.getElementById('dashDate').textContent = 'Today is ' + new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if (PROFILE) {
+    document.getElementById('setName').value   = PROFILE.name   || '';
+    document.getElementById('setBiz').value    = PROFILE.business || '';
+    document.getElementById('setPhone').value  = PROFILE.phone  || '';
+    document.getElementById('setGST').value    = PROFILE.gst_number || '';
+    document.getElementById('setTerms').value  = PROFILE.inv_terms || 30;
+    document.getElementById('setPrefix').value = PROFILE.inv_prefix || 'INV';
+  }
+  setSyncing(false);
+  navigate('dashboard');
+  // Run automations silently on startup
+  setTimeout(() => { silentRunRecurring(); silentMarkOverdue(); }, 2000);
+}
+
+// ══════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════
+function navigate(page) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + page).classList.add('active');
+  document.getElementById('nav-' + page).classList.add('active');
+  const titles = { dashboard:'Dashboard', invoices:'Invoices', clients:'Clients', automations:'Automations', reports:'Reports', settings:'Settings' };
+  document.getElementById('topbarTitle').textContent = titles[page] || page;
+  if (page === 'dashboard')   renderDashboard();
+  if (page === 'invoices')    renderInvoicesTable();
+  if (page === 'clients')     renderClients();
+  if (page === 'reports')     renderReports();
+  if (page === 'automations') loadLogs();
+  document.getElementById('sidebar').classList.remove('open');
+}
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); }
+
+// ══════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════
+function uid() { return Math.random().toString(36).slice(2,9).toUpperCase() + Math.random().toString(36).slice(2,5).toUpperCase(); }
+function fmt(n) { return '₹' + Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:0,maximumFractionDigits:0}); }
+function fmtDate(s) { if(!s) return '—'; return new Date(s).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
+function todayStr() { return new Date().toISOString().split('T')[0]; }
+function addDays(d, n) { const dt = new Date(d); dt.setDate(dt.getDate()+n); return dt.toISOString().split('T')[0]; }
+function totalAmt(inv) { const b = Number(inv.amount||0); return b + b*(Number(inv.gst_percent||0)/100); }
+function initials(n) { if(!n) return '?'; const p=n.trim().split(' '); return (p[0][0]+(p[1]?p[1][0]:'')).toUpperCase(); }
+function getClient(id) { return CACHE.clients.find(c => c.id === id) || null; }
+
+function calcStatus(inv) {
+  if (inv.status === 'paid' || inv.status === 'draft') return inv.status;
+  if (inv.due_date && inv.due_date < todayStr()) return 'overdue';
+  return 'pending';
+}
+
+function badgeHtml(s) {
+  const m = { paid:'<span class="badge badge-green">Paid</span>', pending:'<span class="badge badge-amber">Pending</span>', overdue:'<span class="badge badge-red">Overdue</span>', draft:'<span class="badge badge-gray">Draft</span>' };
+  return m[s] || '';
+}
+
+function setText(id, v) { const e=document.getElementById(id); if(e) e.textContent=v; }
+function showErr(id, msg) { const e=document.getElementById(id); if(!e) return; if(msg) e.textContent=msg; e.style.display='block'; const inp=document.getElementById(id.replace('Err','')); if(inp) inp.classList.add('error'); }
+function clearErr(id) { const e=document.getElementById(id); if(e) e.style.display='none'; const inp=document.getElementById(id.replace('Err','')); if(inp) inp.classList.remove('error'); }
+function clearErrors(ids) { ids.forEach(id => clearErr(id+'Err')); }
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function setLoading(id, on, txt) {
+  const btn = document.getElementById(id); if(!btn) return;
+  btn.disabled = on;
+  btn.innerHTML = on ? `<span class="spinner"></span> ${txt||'Please wait...'}` : (txt||'Save');
+}
+function setSyncing(on, err=false) {
+  const dot = document.getElementById('syncDot'); const lbl = document.getElementById('syncLabel'); if(!dot) return;
+  dot.className = 'sync-dot' + (on?' syncing':(err?' error':''));
+  lbl.textContent = on ? 'Syncing...' : (err ? 'Sync error' : (DEMO ? 'Demo' : 'Synced'));
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o => o.addEventListener('click', e => { if(e.target===o) o.classList.remove('open'); }));
+document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open')); });
+
+function toast(msg, type='') {
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  const icons = { success:'<polyline points="20 6 9 17 4 12"/>', error:'<line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>', info:'<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/>', warning:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>' };
+  t.innerHTML = `<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">${icons[type]||icons.info}</svg>${msg}`;
+  wrap.appendChild(t);
+  requestAnimationFrame(() => t.classList.add('show'));
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 3500);
+}
+
+function confirm2(title, msg, cb) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').textContent = msg;
+  document.getElementById('confirmOkBtn').onclick = () => { cb(); closeModal('modalConfirm'); };
+  openModal('modalConfirm');
+}
+
+// ══════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════
+function renderDashboard() {
+  const invs = CACHE.invoices;
+  const now = todayStr(); const thisMonth = now.slice(0,7);
+  const outstanding = invs.filter(i => calcStatus(i) !== 'paid' && i.status !== 'draft');
+  const outAmt = outstanding.reduce((s,i) => s+totalAmt(i), 0);
+  const paid = invs.filter(i => i.status==='paid' && (i.paid_date||'').startsWith(thisMonth));
+  const paidAmt = paid.reduce((s,i) => s+totalAmt(i), 0);
+  const overdue = invs.filter(i => calcStatus(i)==='overdue');
+  const overdueAmt = overdue.reduce((s,i) => s+totalAmt(i), 0);
+  const activeClients = new Set(invs.filter(i => (i.issue_date||'').startsWith(thisMonth)).map(i=>i.client_id));
+
+  setText('statOutstanding', fmt(outAmt));
+  setText('statOutstandingCount', outstanding.length + ' unpaid invoice' + (outstanding.length!==1?'s':''));
+  setText('statCollected', fmt(paidAmt));
+  setText('statCollectedCount', paid.length + ' payment' + (paid.length!==1?'s':'') + ' received');
+  setText('statOverdue', fmt(overdueAmt));
+  setText('statOverdueCount', overdue.length + ' invoice' + (overdue.length!==1?'s':'') + ' overdue');
+  setText('statClients', CACHE.clients.length);
+  setText('statClientsActive', activeClients.size + ' active this month');
+
+  const recent = [...invs].slice(0,5);
+  const rEl = document.getElementById('dashRecentInvoices');
+  rEl.innerHTML = recent.length === 0
+    ? '<div style="text-align:center;padding:24px 0;color:var(--text3);font-size:13px;">No invoices yet</div>'
+    : recent.map(i => {
+        const cl = i.clients || getClient(i.client_id); const st = calcStatus(i);
+        return `<div class="activity-item">
+          <div class="activity-avatar">${cl?initials(cl.name):'?'}</div>
+          <div class="activity-info"><div class="activity-name">${cl?cl.name:'Unknown'}</div><div class="activity-desc">${i.service||'—'} · ${fmtDate(i.issue_date)}</div></div>
+          <div><div style="font-size:14px;font-weight:600;font-family:var(--font-mono);text-align:right;">${fmt(totalAmt(i))}</div><div style="text-align:right;">${badgeHtml(st)}</div></div>
+        </div>`;
+      }).join('');
+  renderChart();
+}
+
+function renderChart() {
+  const months = [];
+  for (let i=5; i>=0; i--) { const d=new Date(); d.setMonth(d.getMonth()-i); months.push({key:d.toISOString().slice(0,7),label:d.toLocaleDateString('en-IN',{month:'short'})}); }
+  const vals = months.map(m => CACHE.invoices.filter(i=>i.status==='paid'&&(i.paid_date||'').startsWith(m.key)).reduce((s,i)=>s+totalAmt(i),0));
+  const maxVal = Math.max(1, ...vals);
+  setText('chartTotal', fmt(CACHE.invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+totalAmt(i),0)));
+  document.getElementById('revenueChart').innerHTML = months.map((m,idx) => {
+    const h = Math.max(4, Math.round((vals[idx]/maxVal)*100));
+    return `<div class="chart-bar-wrap"><div class="chart-bar-val">${vals[idx]>0?fmt(vals[idx]):''}</div><div class="chart-bar" style="height:${h}px;" title="${m.label}: ${fmt(vals[idx])}"></div></div>`;
+  }).join('');
+  document.getElementById('chartLabels').innerHTML = months.map(m=>`<div class="chart-label" style="flex:1;text-align:center;">${m.label}</div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// INVOICES
+// ══════════════════════════════════════════════════════
+let invoiceFilter = 'all';
+
+function openNewInvoice() {
+  document.getElementById('invoiceModalTitle').textContent = 'New Invoice';
+  document.getElementById('invEditId').value = '';
+  ['invService','invNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('invClient').value = '';
+  document.getElementById('invAmount').value = '';
+  document.getElementById('invGST').value = '18';
+  document.getElementById('invIssueDate').value = todayStr();
+  document.getElementById('invDueDate').value = addDays(todayStr(), PROFILE?.inv_terms || 30);
+  document.getElementById('invStatus').value = 'pending';
+  document.getElementById('invRecurring').value = '';
+  document.getElementById('autoSendNote').style.display = '';
+  document.getElementById('saveInvBtn').textContent = 'Save & Send Invoice';
+  document.getElementById('saveInvBtn').disabled = false;
+  clearErrors(['invClient','invService','invAmount','invDueDate']);
+  populateClientSelect();
+  openModal('modalNewInvoice');
+}
+
+function populateClientSelect() {
+  const sel = document.getElementById('invClient');
+  const val = sel.value;
+  sel.innerHTML = '<option value="">Select a client...</option>' + CACHE.clients.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  if (val) sel.value = val;
+}
+
+async function saveInvoice() {
+  const clientId   = document.getElementById('invClient').value;
+  const service    = document.getElementById('invService').value.trim();
+  const amount     = document.getElementById('invAmount').value;
+  const gst        = document.getElementById('invGST').value;
+  const issueDate  = document.getElementById('invIssueDate').value;
+  const dueDate    = document.getElementById('invDueDate').value;
+  const notes      = document.getElementById('invNotes').value.trim();
+  const status     = document.getElementById('invStatus').value;
+  const recurring  = document.getElementById('invRecurring').value;
+  const editId     = document.getElementById('invEditId').value;
+
+  clearErrors(['invClient','invService','invAmount','invDueDate']);
+  let ok = true;
+  if (!clientId) { showErr('invClientErr'); ok=false; }
+  if (!service)  { showErr('invServiceErr'); ok=false; }
+  if (!amount || Number(amount)<=0) { showErr('invAmountErr'); ok=false; }
+  if (!dueDate)  { showErr('invDueDateErr','Required'); ok=false; }
+  else if (dueDate < issueDate) { showErr('invDueDateErr','Must be after issue date'); ok=false; }
+  if (!ok) return;
+
+  setLoading('saveInvBtn', true, 'Saving...');
+
+  const prefix = PROFILE?.inv_prefix || 'INV';
+  const invNum = editId
+    ? CACHE.invoices.find(i=>i.id===editId)?.number
+    : prefix + '-' + String(CACHE.invoices.length+1).padStart(4,'0');
+
+  const recurNextDate = recurring
+    ? addDays(dueDate, recurring==='weekly'?7:recurring==='quarterly'?90:30)
+    : null;
+
+  const inv = {
+    user_id: USER.id, client_id: clientId, number: invNum,
+    service, amount: Number(amount), gst_percent: Number(gst),
+    issue_date: issueDate, due_date: dueDate, notes, status,
+    is_recurring: !!recurring,
+    recur_interval: recurring || null,
+    recur_next_date: recurNextDate,
+    paid_date: status==='paid' ? todayStr() : null
+  };
+
+  let savedInv;
+  if (editId) {
+    const { error } = await dbUpdate('invoices', editId, inv);
+    if (error) { toast('Error: ' + error.message, 'error'); setLoading('saveInvBtn', false, 'Update Invoice'); return; }
+    const idx = CACHE.invoices.findIndex(i=>i.id===editId);
+    if (idx>=0) CACHE.invoices[idx] = { ...CACHE.invoices[idx], ...inv };
+    savedInv = CACHE.invoices.find(i=>i.id===editId);
+    toast('Invoice updated', 'success');
+  } else {
+    const { data, error } = await dbInsert('invoices', inv);
+    if (error) { toast('Error: ' + error.message, 'error'); setLoading('saveInvBtn', false, 'Save Invoice'); return; }
+    savedInv = data;
+    if (!DEMO) await loadAllData();
+    toast('Invoice saved!', 'success');
+    // AUTO-SEND AUTOMATION
+    if (status === 'pending') {
+      const cl = getClient(clientId);
+      await autoSendInvoice(savedInv, cl);
+    }
+  }
+
+  setLoading('saveInvBtn', false, 'Save Invoice');
+  closeModal('modalNewInvoice');
+  renderInvoicesTable();
+  renderDashboard();
+}
+
+function renderInvoicesTable() {
+  const tbody = document.getElementById('invoicesTable');
+  let invs = CACHE.invoices;
+  if (invoiceFilter === 'recurring') invs = invs.filter(i => i.is_recurring);
+  else if (invoiceFilter !== 'all') invs = invs.filter(i => calcStatus(i) === invoiceFilter);
+  const search = document.getElementById('globalSearch').value.toLowerCase();
+  if (search) invs = invs.filter(i => {
+    const cl = i.clients || getClient(i.client_id);
+    return (cl&&cl.name.toLowerCase().includes(search)) || (i.service&&i.service.toLowerCase().includes(search)) || (i.number&&i.number.toLowerCase().includes(search));
+  });
+
+  if (invs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty"><div class="empty-icon">📋</div><div class="empty-title">No invoices found</div><div class="empty-sub">${invoiceFilter!=='all'?'No '+invoiceFilter+' invoices':'Create your first invoice'}</div>${invoiceFilter==='all'?'<button class="btn btn-primary" onclick="openNewInvoice()">Create invoice</button>':''}</div></td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = invs.map(inv => {
+    const cl = inv.clients || getClient(inv.client_id); const st = calcStatus(inv);
+    return `<tr>
+      <td class="td-id">${inv.number||'—'}${inv.is_recurring?'<span class="auto-badge" style="margin-left:4px;">🔄</span>':''}</td>
+      <td><div style="display:flex;align-items:center;gap:8px;"><div class="activity-avatar" style="width:28px;height:28px;font-size:11px;">${cl?initials(cl.name):'?'}</div><span class="td-name">${cl?cl.name:'Unknown'}</span></div></td>
+      <td style="max-width:160px;" class="truncate">${inv.service||'—'}</td>
+      <td class="td-amount">${fmt(totalAmt(inv))}</td>
+      <td>${fmtDate(inv.due_date)}</td>
+      <td>${badgeHtml(st)}</td>
+      <td><div style="display:flex;gap:4px;">
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="viewInvoice('${inv.id}')" title="View"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="editInvoice('${inv.id}')" title="Edit"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+        ${st!=='paid'?`<button class="btn btn-ghost btn-sm" onclick="markPaid('${inv.id}')" style="color:var(--green);">✓ Paid</button>`:''}
+        <button class="btn btn-ghost btn-sm btn-icon" onclick="deleteInvoice('${inv.id}')" style="color:var(--red);" title="Delete"><svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg></button>
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+
+function filterInvoices(f, btn) {
+  invoiceFilter = f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderInvoicesTable();
+}
+
+function viewInvoice(id) {
+  const inv = CACHE.invoices.find(i=>i.id===id); if(!inv) return;
+  const cl = inv.clients || getClient(inv.client_id); const st = calcStatus(inv);
+  const base = Number(inv.amount||0); const gstAmt = base*(Number(inv.gst_percent||0)/100); const total = base+gstAmt;
+  document.getElementById('viewInvSub').textContent = (inv.number||'') + (cl?' · '+cl.name:'');
+  document.getElementById('invoicePreviewBody').innerHTML = `
+    <div class="inv-preview">
+      <div class="inv-header">
+        <div><div class="inv-logo">Hisaab</div><div style="font-size:11px;color:var(--text3);margin-top:4px;">Built by Sanskar Gupta</div></div>
+        <div class="inv-meta"><strong>${inv.number||'Invoice'}</strong><div>Issued: ${fmtDate(inv.issue_date)}</div><div>Due: ${fmtDate(inv.due_date)}</div><div style="margin-top:6px;">${badgeHtml(st)}${inv.is_recurring?'<span class="auto-badge" style="margin-left:4px;">🔄 Recurring</span>':''}</div></div>
+      </div>
+      <div class="inv-parties">
+        <div><div class="inv-party-label">From</div><div class="inv-party-name">${PROFILE?.name||''}</div><div class="inv-party-detail">${USER?.email||''}</div>${PROFILE?.gst_number?`<div class="inv-party-detail">GST: ${PROFILE.gst_number}</div>`:''}</div>
+        <div><div class="inv-party-label">Bill to</div><div class="inv-party-name">${cl?cl.name:'—'}</div><div class="inv-party-detail">${cl?cl.email||'':''}</div><div class="inv-party-detail">${cl?cl.phone||'':''}</div></div>
+      </div>
+      <table class="inv-items"><thead><tr><th>Description</th><th style="text-align:right;">Amount</th></tr></thead>
+      <tbody><tr><td>${inv.service}</td><td style="text-align:right;font-family:var(--font-mono);">${fmt(base)}</td></tr>
+      ${inv.gst_percent>0?`<tr><td style="color:var(--text2);">GST (${inv.gst_percent}%)</td><td style="text-align:right;font-family:var(--font-mono);color:var(--text2);">${fmt(gstAmt)}</td></tr>`:''}</tbody></table>
+      ${inv.notes?`<div style="background:var(--bg2);border-radius:var(--radius);padding:12px;font-size:13px;color:var(--text2);margin-bottom:16px;">${inv.notes}</div>`:''}
+      <div style="display:flex;justify-content:flex-end;"><div class="inv-total-box"><div class="inv-total-label">Total Due</div><div class="inv-total-amount">${fmt(total)}</div></div></div>
+      <div class="inv-footer">© Hisaab · Built by Sanskar Gupta · Thank you for your business</div>
+    </div>`;
+  document.getElementById('invoicePreviewFooter').innerHTML = `
+    <button class="btn btn-secondary" onclick="closeModal('modalViewInvoice')">Close</button>
+    <button class="btn btn-secondary" onclick="editInvoice('${id}');closeModal('modalViewInvoice');">Edit</button>
+    ${st!=='paid'?`<button class="btn btn-success" onclick="markPaid('${id}');closeModal('modalViewInvoice');">✓ Mark Paid</button>`:''}
+    <button class="btn btn-primary" onclick="window.print()">Print</button>`;
+  openModal('modalViewInvoice');
+}
+
+function editInvoice(id) {
+  const inv = CACHE.invoices.find(i=>i.id===id); if(!inv) return;
+  populateClientSelect();
+  document.getElementById('invoiceModalTitle').textContent = 'Edit Invoice';
+  document.getElementById('invEditId').value       = inv.id;
+  document.getElementById('invClient').value       = inv.client_id;
+  document.getElementById('invService').value      = inv.service;
+  document.getElementById('invAmount').value       = inv.amount;
+  document.getElementById('invGST').value          = inv.gst_percent;
+  document.getElementById('invIssueDate').value    = inv.issue_date;
+  document.getElementById('invDueDate').value      = inv.due_date;
+  document.getElementById('invNotes').value        = inv.notes||'';
+  document.getElementById('invStatus').value       = inv.status;
+  document.getElementById('invRecurring').value    = inv.recur_interval||'';
+  document.getElementById('autoSendNote').style.display = 'none';
+  document.getElementById('saveInvBtn').textContent = 'Update Invoice';
+  document.getElementById('saveInvBtn').disabled = false;
+  clearErrors(['invClient','invService','invAmount','invDueDate']);
+  openModal('modalNewInvoice');
+}
+
+async function markPaid(id) {
+  const inv = CACHE.invoices.find(i=>i.id===id); if(!inv) return;
+  const { error } = await dbUpdate('invoices', id, { status:'paid', paid_date: todayStr() });
+  if (error) { toast('Error: '+error.message,'error'); return; }
+  inv.status = 'paid'; inv.paid_date = todayStr();
+  renderInvoicesTable(); renderDashboard();
+  toast('Invoice marked as paid ✓', 'success');
+}
+
+function deleteInvoice(id) {
+  confirm2('Delete invoice?', 'This cannot be undone.', async () => {
+    await dbDelete('invoices', id);
+    CACHE.invoices = CACHE.invoices.filter(i=>i.id!==id);
+    renderInvoicesTable(); renderDashboard();
+    toast('Invoice deleted');
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// CLIENTS
+// ══════════════════════════════════════════════════════
+function openNewClient() {
+  document.getElementById('clientModalTitle').textContent = 'Add Client';
+  document.getElementById('clientEditId').value = '';
+  ['clientName','clientEmail','clientPhone','clientCompany','clientAddress'].forEach(id=>document.getElementById(id).value='');
+  clearErrors(['clientName','clientEmail','clientPhone']);
+  document.getElementById('saveClientBtn').textContent = 'Save Client';
+  document.getElementById('saveClientBtn').disabled = false;
+  openModal('modalNewClient');
+}
+
+async function saveClient() {
+  const name    = document.getElementById('clientName').value.trim();
+  const email   = document.getElementById('clientEmail').value.trim();
+  const phone   = document.getElementById('clientPhone').value.trim();
+  const editId  = document.getElementById('clientEditId').value;
+  clearErrors(['clientName','clientEmail','clientPhone']);
+  let ok = true;
+  if (!name) { showErr('clientNameErr'); ok=false; }
+  if (email && !validateEmail(email)) { showErr('clientEmailErr','Invalid email'); ok=false; }
+  if (!ok) return;
+
+  setLoading('saveClientBtn', true, 'Saving...');
+  const client = { user_id: USER.id, name, email, phone, company: document.getElementById('clientCompany').value.trim(), address: document.getElementById('clientAddress').value.trim() };
+
+  if (editId) {
+    const { error } = await dbUpdate('clients', editId, client);
+    if (error) { toast('Error: '+error.message,'error'); setLoading('saveClientBtn',false,'Update Client'); return; }
+    const idx = CACHE.clients.findIndex(c=>c.id===editId);
+    if (idx>=0) CACHE.clients[idx] = { ...CACHE.clients[idx], ...client };
+    toast('Client updated', 'success');
+  } else {
+    const { data, error } = await dbInsert('clients', client);
+    if (error) { toast('Error: '+error.message,'error'); setLoading('saveClientBtn',false,'Save Client'); return; }
+    if (data && !CACHE.clients.find(c=>c.id===data.id)) CACHE.clients.push(data);
+    toast('Client added', 'success');
+  }
+
+  setLoading('saveClientBtn', false, 'Save Client');
+  populateClientSelect();
+  closeModal('modalNewClient');
+  renderClients();
+}
+
+function renderClients() {
+  const grid = document.getElementById('clientsGrid');
+  const search = document.getElementById('globalSearch').value.toLowerCase();
+  let clients = CACHE.clients;
+  if (search) clients = clients.filter(c => c.name.toLowerCase().includes(search) || (c.email||'').toLowerCase().includes(search));
+  if (clients.length === 0) {
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="empty-icon">👥</div><div class="empty-title">No clients yet</div><div class="empty-sub">Add your first client</div><button class="btn btn-primary" onclick="openNewClient()">Add client</button></div>`;
+    return;
+  }
+  grid.innerHTML = clients.map(cl => {
+    const invs = CACHE.invoices.filter(i => i.client_id === cl.id);
+    const paid = invs.filter(i=>i.status==='paid').reduce((s,i)=>s+totalAmt(i),0);
+    const pending = invs.filter(i=>calcStatus(i)==='pending'||calcStatus(i)==='overdue').reduce((s,i)=>s+totalAmt(i),0);
+    return `<div class="client-card" onclick="openClientDetail('${cl.id}')">
+      <div class="client-avatar">${initials(cl.name)}</div>
+      <div class="client-name">${cl.name}</div>
+      <div class="client-detail">${cl.email||cl.phone||cl.company||'No contact info'}</div>
+      <div class="client-stats">
+        <div class="client-stat"><strong class="text-green">${fmt(paid)}</strong>Paid</div>
+        <div class="client-stat"><strong ${pending>0?'class="text-amber"':''}>${fmt(pending)}</strong>Pending</div>
+        <div class="client-stat"><strong>${invs.length}</strong>Invoices</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openClientDetail(id) {
+  const cl = CACHE.clients.find(c=>c.id===id); if(!cl) return;
+  document.getElementById('clientModalTitle').textContent = 'Edit Client';
+  document.getElementById('clientEditId').value   = cl.id;
+  document.getElementById('clientName').value     = cl.name;
+  document.getElementById('clientEmail').value    = cl.email||'';
+  document.getElementById('clientPhone').value    = cl.phone||'';
+  document.getElementById('clientCompany').value  = cl.company||'';
+  document.getElementById('clientAddress').value  = cl.address||'';
+  document.getElementById('saveClientBtn').textContent = 'Update Client';
+  document.getElementById('saveClientBtn').disabled = false;
+  clearErrors(['clientName','clientEmail','clientPhone']);
+  openModal('modalNewClient');
+}
+
+// ══════════════════════════════════════════════════════
+// AUTOMATIONS
+// ══════════════════════════════════════════════════════
+
+// 1. AUTO-SEND INVOICE on creation
+async function autoSendInvoice(inv, client) {
+  if (!client?.phone) {
+    logAutomation('invoice_auto_sent', 'skipped', 'No phone number for client');
+    return;
+  }
+  const total = totalAmt(inv);
+  const msg = `Hi ${client.name}! 👋\n\nInvoice ${inv.number} from ${PROFILE?.name||'your service provider'}\n\nService: ${inv.service}\nAmount: ${fmt(total)}\nDue: ${fmtDate(inv.due_date)}\n\nPlease pay by the due date. Thank you!\n\n— Hisaab App`;
+  await sendWhatsApp(client.phone, msg, inv.id, 'invoice_auto_sent');
+}
+
+// 2. REMINDERS — send on due date
+async function runReminders() {
+  const today = todayStr();
+  const dueToday = CACHE.invoices.filter(i => i.due_date === today && calcStatus(i) === 'pending' && !i.reminder_sent);
+  if (dueToday.length === 0) { toast('No invoices due today', 'info'); return; }
+
+  let sent = 0;
+  for (const inv of dueToday) {
+    const cl = inv.clients || getClient(inv.client_id);
+    if (!cl?.phone) continue;
+    const total = totalAmt(inv);
+    const msg = `Hi ${cl.name} 👋\n\nFriendly reminder: Invoice ${inv.number} for ${fmt(total)} is due TODAY.\n\nService: ${inv.service}\nAmount: ${fmt(total)}\n\nPlease make the payment at your earliest convenience.\n\nThank you!\n— ${PROFILE?.name||'Hisaab'}`;
+    await sendWhatsApp(cl.phone, msg, inv.id, 'reminder_sent');
+    await dbUpdate('invoices', inv.id, { reminder_sent: true });
+    inv.reminder_sent = true;
+    sent++;
+  }
+
+  if (!DEMO && SB) await SB.rpc('auto_mark_overdue');
+  toast(`Reminders sent for ${sent} invoice${sent!==1?'s':''}`, 'success');
+  loadLogs();
+}
+
+// 3. RECURRING INVOICE GENERATION
+async function runRecurring() {
+  const today = todayStr();
+  const due = CACHE.invoices.filter(i => i.is_recurring && i.recur_next_date && i.recur_next_date <= today);
+  if (due.length === 0) { toast('No recurring invoices due today', 'info'); return; }
+
+  let created = 0;
+  for (const inv of due) {
+    const terms = PROFILE?.inv_terms || 30;
+    const newDue = addDays(today, terms);
+    const newNum = (PROFILE?.inv_prefix||'INV') + '-' + String(CACHE.invoices.length+1).padStart(4,'0');
+    const nextRecur = inv.recur_interval === 'weekly' ? addDays(today,7) : inv.recur_interval === 'quarterly' ? addDays(today,90) : addDays(today,30);
+
+    const newInv = {
+      user_id: USER.id, client_id: inv.client_id, number: newNum,
+      service: inv.service, amount: inv.amount, gst_percent: inv.gst_percent,
+      issue_date: today, due_date: newDue, status: 'pending',
+      notes: inv.notes, is_recurring: true,
+      recur_interval: inv.recur_interval, recur_next_date: nextRecur
+    };
+
+    const { data } = await dbInsert('invoices', newInv);
+    await dbUpdate('invoices', inv.id, { recur_next_date: null });
+    inv.recur_next_date = null;
+
+    logAutomation('invoice_auto_created', 'success', `Recurring invoice ${newNum} auto-generated`);
+
+    // Auto-send the new recurring invoice
+    const cl = getClient(inv.client_id);
+    if (data && cl) await autoSendInvoice(data, cl);
+    created++;
+  }
+
+  if (!DEMO) await loadAllData();
+  toast(`${created} recurring invoice${created!==1?'s':''} generated`, 'success');
+  renderInvoicesTable(); renderDashboard();
+  loadLogs();
+}
+
+// Silent automations on app load
+async function silentRunRecurring() {
+  const today = todayStr();
+  const due = CACHE.invoices.filter(i => i.is_recurring && i.recur_next_date && i.recur_next_date <= today);
+  if (due.length > 0) { await runRecurring(); }
+}
+
+async function silentMarkOverdue() {
+  let changed = false;
+  CACHE.invoices.forEach(i => { if(calcStatus(i)==='overdue' && i.status==='pending') { i.status='overdue'; changed=true; } });
+  if (changed) renderDashboard();
+}
+
+// WhatsApp sender (Twilio or simulation)
+async function sendWhatsApp(phone, message, invId, type) {
+  const sid   = localStorage.getItem('twilio_sid');
+  const token = localStorage.getItem('twilio_token');
+  const from  = localStorage.getItem('twilio_num') || 'whatsapp:+14155238886';
+
+  if (sid && token) {
+    try {
+      const resp = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Messages.json`, {
+        method: 'POST',
+        headers: { 'Authorization': 'Basic ' + btoa(sid+':'+token), 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ From: from, To: 'whatsapp:' + phone, Body: message })
+      });
+      const data = await resp.json();
+      if (data.sid) { logAutomation(type, 'success', `WhatsApp sent to ${phone}`); return true; }
+      else { logAutomation(type, 'failed', data.message || 'Send failed'); return false; }
+    } catch(e) { logAutomation(type, 'failed', e.message); return false; }
+  } else {
+    // Simulate
+    logAutomation(type, 'simulated', `[SIMULATED] Would send to ${phone}: "${message.slice(0,60)}..."`);
+    return true;
+  }
+}
+
+const AUTO_LOGS = [];
+function logAutomation(type, status, message) {
+  AUTO_LOGS.unshift({ type, status, message, time: new Date().toLocaleTimeString('en-IN') });
+  if (AUTO_LOGS.length > 50) AUTO_LOGS.pop();
+}
+
+async function loadLogs() {
+  const el = document.getElementById('automationLogs');
+  if (!el) return;
+
+  let logs = [...AUTO_LOGS];
+
+  // Also fetch from Supabase if connected
+  if (!DEMO && SB) {
+    const { data } = await SB.from('automation_logs').select('*').eq('user_id', USER.id).order('created_at',{ascending:false}).limit(20);
+    if (data && data.length > 0) {
+      const sbLogs = data.map(l => ({ type:l.type, status:l.status, message:l.message, time: new Date(l.created_at).toLocaleTimeString('en-IN') }));
+      logs = [...logs, ...sbLogs].slice(0,30);
+    }
+  }
+
+  if (logs.length === 0) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3);font-size:13px;">No automation logs yet — run an automation above</div>';
+    return;
+  }
+
+  const typeLabels = { reminder_sent:'⚡ Reminder sent', invoice_auto_created:'🔄 Invoice generated', invoice_auto_sent:'📤 Invoice sent', simulated:'🔵 Simulated' };
+  const dotColors = { success:'var(--green)', failed:'var(--red)', simulated:'var(--blue)' };
+
+  el.innerHTML = logs.map(l => `
+    <div class="log-item">
+      <div class="log-dot" style="background:${dotColors[l.status]||'var(--text3)'}"></div>
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:500;">${typeLabels[l.type]||l.type}</div>
+        <div style="font-size:11px;color:var(--text3);line-height:1.5;">${l.message||'—'}</div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);flex-shrink:0;">${l.time}</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// REPORTS
+// ══════════════════════════════════════════════════════
+function renderReports() {
+  const invs = CACHE.invoices;
+  const paid = invs.filter(i=>i.status==='paid');
+  const total = paid.reduce((s,i)=>s+totalAmt(i),0);
+  const avg = paid.length>0 ? total/paid.length : 0;
+  const nonDraft = invs.filter(i=>i.status!=='draft');
+  const rate = nonDraft.length>0 ? (paid.length/nonDraft.length*100) : 0;
+  setText('repTotal',fmt(total)); setText('repAvg',fmt(avg));
+  setText('repRate',Math.round(rate)+'%');
+  document.getElementById('repRateFill').style.width = rate+'%';
+  setText('repCount', nonDraft.length);
+  setText('repCountSub', paid.length+' paid, '+invs.filter(i=>calcStatus(i)==='pending').length+' pending, '+invs.filter(i=>calcStatus(i)==='overdue').length+' overdue');
+  document.getElementById('reportBreakdown').innerHTML = ['paid','pending','overdue','draft'].map(s => {
+    const n = invs.filter(i=>(s==='paid'?i.status:calcStatus(i))===s).length;
+    const amt = invs.filter(i=>(s==='paid'?i.status:calcStatus(i))===s).reduce((x,i)=>x+totalAmt(i),0);
+    return `<div class="stat-card" style="flex:1;min-width:120px;"><div style="margin-bottom:8px;">${badgeHtml(s)}</div><div class="stat-value" style="font-size:22px;">${n}</div><div class="stat-sub">${fmt(amt)}</div></div>`;
+  }).join('');
+  const topClients = CACHE.clients.map(cl => ({ name:cl.name, rev:CACHE.invoices.filter(i=>i.client_id===cl.id&&i.status==='paid').reduce((s,i)=>s+totalAmt(i),0) })).sort((a,b)=>b.rev-a.rev).slice(0,5);
+  document.getElementById('topClientsReport').innerHTML = topClients.length===0
+    ? '<div style="color:var(--text3);font-size:13px;padding:10px 0;">No revenue yet</div>'
+    : topClients.map(c => { const max=topClients[0].rev||1; return `<div style="margin-bottom:12px;"><div class="flex-between" style="margin-bottom:4px;"><span style="font-size:13px;font-weight:500;">${c.name}</span><span class="font-mono" style="font-size:12px;">${fmt(c.rev)}</span></div><div class="progress"><div class="progress-fill" style="width:${Math.round(c.rev/max*100)}%"></div></div></div>`; }).join('');
+}
+
+function exportCSV() {
+  if (CACHE.invoices.length===0) { toast('No invoices to export','error'); return; }
+  const header = ['Invoice #','Client','Service','Amount','GST %','Total','Issue Date','Due Date','Status','Recurring'];
+  const rows = CACHE.invoices.map(i => { const cl=i.clients||getClient(i.client_id); return [i.number,cl?cl.name:'',i.service,i.amount,i.gst_percent,totalAmt(i).toFixed(2),i.issue_date,i.due_date,calcStatus(i),i.is_recurring?'Yes':'No']; });
+  const csv = [header,...rows].map(r=>r.map(v=>`"${v||''}"`).join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='hisaab-invoices.csv'; a.click(); URL.revokeObjectURL(url);
+  toast('CSV exported','success');
+}
+
+// ══════════════════════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════════════════════
+async function saveProfile() {
+  const name = document.getElementById('setName').value.trim();
+  if (!name) { toast('Name required','error'); return; }
+  const updates = { name, business: document.getElementById('setBiz').value.trim(), phone: document.getElementById('setPhone').value.trim(), gst_number: document.getElementById('setGST').value.trim(), inv_terms: Number(document.getElementById('setTerms').value), inv_prefix: document.getElementById('setPrefix').value.trim()||'INV' };
+  if (!DEMO && SB) await SB.from('profiles').update(updates).eq('id', USER.id);
+  PROFILE = { ...PROFILE, ...updates };
+  document.getElementById('sidebarName').textContent = name;
+  document.getElementById('sidebarAvatar').textContent = initials(name);
+  toast('Profile saved','success');
+}
+
+function saveIntegrations() {
+  localStorage.setItem('twilio_sid',   document.getElementById('setTwilioSid').value.trim());
+  localStorage.setItem('twilio_token', document.getElementById('setTwilioToken').value.trim());
+  localStorage.setItem('twilio_num',   document.getElementById('setTwilioNum').value.trim());
+  toast('Integrations saved. WhatsApp is now active!','success');
+}
+
+function confirmDeleteAll() {
+  confirm2('Delete all data?','Permanently deletes all invoices and clients. Cannot be undone.',async()=>{
+    if (!DEMO && SB) {
+      await SB.from('invoices').delete().eq('user_id',USER.id);
+      await SB.from('clients').delete().eq('user_id',USER.id);
+    }
+    CACHE = { invoices:[], clients:[] };
+    navigate('dashboard'); toast('All data deleted');
+  });
+}
+
+function handleSearch(v) {
+  const active = document.querySelector('.screen.active'); if(!active) return;
+  const id = active.id.replace('screen-','');
+  if(id==='invoices') renderInvoicesTable();
+  if(id==='clients')  renderClients();
+}
+
+// ══════════════════════════════════════════════════════
+// DEMO DATA
+// ══════════════════════════════════════════════════════
+function getDemoClients() {
+  return [
+    {id:'C1',user_id:'demo',name:'Priya Sharma',email:'priya@example.com',phone:'+919876543210',company:'TechCorp',address:'Indore, MP'},
+    {id:'C2',user_id:'demo',name:'Ankit Verma',email:'ankit@example.com',phone:'+918765432109',company:'',address:'Bhopal, MP'},
+    {id:'C3',user_id:'demo',name:'Meera Joshi',email:'meera@example.com',phone:'+917654321098',company:'Joshi Enterprises',address:'Pune, MH'},
+    {id:'C4',user_id:'demo',name:'Rahul Patel',email:'rahul@example.com',phone:'+916543210987',company:'',address:'Ahmedabad, GJ'},
+  ];
+}
+function getDemoInvoices() {
+  const t = todayStr();
+  return [
+    {id:'I1',user_id:'demo',client_id:'C1',number:'INV-0001',service:'Web Design — Company Website',amount:35000,gst_percent:18,issue_date:addDays(t,-45),due_date:addDays(t,-15),status:'paid',paid_date:addDays(t,-10),notes:'Final payment.',is_recurring:false,reminder_sent:true,created_at:new Date().toISOString()},
+    {id:'I2',user_id:'demo',client_id:'C2',number:'INV-0002',service:'Plumbing — Kitchen Renovation',amount:8500,gst_percent:0,issue_date:addDays(t,-20),due_date:addDays(t,-5),status:'paid',paid_date:addDays(t,-3),notes:'',is_recurring:false,reminder_sent:true,created_at:new Date().toISOString()},
+    {id:'I3',user_id:'demo',client_id:'C3',number:'INV-0003',service:'Logo & Brand Identity Design',amount:18000,gst_percent:18,issue_date:addDays(t,-15),due_date:addDays(t,5),status:'pending',notes:'3 concepts + brand guide.',is_recurring:false,reminder_sent:false,created_at:new Date().toISOString()},
+    {id:'I4',user_id:'demo',client_id:'C1',number:'INV-0004',service:'Tuition — Mathematics (Monthly)',amount:6000,gst_percent:0,issue_date:addDays(t,-30),due_date:addDays(t,-8),status:'pending',notes:'',is_recurring:true,recur_interval:'monthly',recur_next_date:addDays(t,22),reminder_sent:false,created_at:new Date().toISOString()},
+    {id:'I5',user_id:'demo',client_id:'C4',number:'INV-0005',service:'Photography — Product Shoot',amount:22000,gst_percent:18,issue_date:addDays(t,-10),due_date:addDays(t,20),status:'pending',notes:'60 edited high-res JPGs.',is_recurring:false,reminder_sent:false,created_at:new Date().toISOString()},
+    {id:'I6',user_id:'demo',client_id:'C2',number:'INV-0006',service:'Electrical — Office Rewiring',amount:14000,gst_percent:0,issue_date:addDays(t,-60),due_date:addDays(t,-30),status:'paid',paid_date:addDays(t,-28),notes:'',is_recurring:false,reminder_sent:true,created_at:new Date().toISOString()},
+    {id:'I7',user_id:'demo',client_id:'C3',number:'INV-0007',service:'Social Media — Monthly Package',amount:12000,gst_percent:18,issue_date:addDays(t,-5),due_date:addDays(t,25),status:'draft',notes:'Draft — confirm scope.',is_recurring:true,recur_interval:'monthly',recur_next_date:addDays(t,55),reminder_sent:false,created_at:new Date().toISOString()},
+  ];
+}
+
+// ══════════════════════════════════════════════════════
+// RESPONSIVE
+// ══════════════════════════════════════════════════════
+function checkMobile() { document.getElementById('menuToggle').style.display = window.innerWidth<=768?'flex':'none'; }
+window.addEventListener('resize', checkMobile); checkMobile();
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+(function init() {
+  const url = localStorage.getItem('hisaab_sb_url');
+  const key = localStorage.getItem('hisaab_sb_key');
+  if (url && key && initSupabase(url, key)) {
+    // Check existing session
+    SB.auth.getSession().then(({ data }) => {
+      if (data?.session?.user) {
+        USER = data.session.user;
+        loadProfile().then(() => loadAllData().then(() => launchApp()));
+      } else {
+        showAuthScreen();
+      }
+    });
+  } else {
+    document.getElementById('setupScreen').style.display = 'flex';
+  }
+})();
+</script>
+</body>
+</html>
