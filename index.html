@@ -1601,7 +1601,7 @@ window.addEventListener('resize', checkMobile); checkMobile();
 // Users will NEVER see a setup screen — the app connects automatically.
 // To find these: supabase.com → your project → Settings → API
 const SUPABASE_URL = localStorage.getItem('hisaab_sb_url') || 'https://yymsplhzwgvpyskepnpa.supabase.co';
-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5bXNwbGh6d2d2cHlza2VwbnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNzI5NTksImV4cCI6MjA4OTY0ODk1OX0.9arI77Be4DwhdIPtpLBlo9GkBBGHvL0JqpcZwEy8asc
+const SUPABASE_KEY = localStorage.getItem('hisaab_sb_key') || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inl5bXNwbGh6d2d2cHlza2VwbnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQwNzI5NTksImV4cCI6MjA4OTY0ODk1OX0.9arI77Be4DwhdIPtpLBlo9GkBBGHvL0JqpcZwEy8asc';
 
 (function init() {
   const configured = SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_KEY !== 'YOUR_SUPABASE_ANON_KEY_HERE';
