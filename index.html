@@ -270,7 +270,7 @@ tr:hover td{background:var(--bg);}
     <div class="auth-divider">or</div>
     <button class="btn btn-secondary" style="width:100%;justify-content:center;padding:12px;" onclick="showRegister()">Create account</button>
     <div style="text-align:center;margin-top:14px;font-size:12px;color:var(--text3);">
-      <a href="#" onclick="showSetup()" style="color:var(--text3);">Change Supabase config</a>
+      New to Hisaab? <a href="#" onclick="showRegister()" style="color:var(--text);font-weight:500;">Create an account</a>
     </div>
   </div>
 </div>
@@ -569,6 +569,15 @@ tr:hover td{background:var(--bg);}
             <div class="form-group"><label class="form-label">Twilio Auth Token</label><input class="form-input" id="setTwilioToken" type="password" placeholder="••••••••"/></div>
             <div class="form-group" style="margin-bottom:0;"><label class="form-label">Twilio WhatsApp number</label><input class="form-input" id="setTwilioNum" placeholder="+14155238886"/></div>
             <div style="margin-top:16px;"><button class="btn btn-primary" onclick="saveIntegrations()">Save integrations</button></div>
+          </div>
+          <div class="card" style="margin-bottom:14px;">
+            <div class="settings-title">Database config <span style="font-size:10px;background:#FAEEDA;color:#9A5C00;padding:2px 8px;border-radius:10px;font-weight:500;margin-left:6px;">Admin only</span></div>
+            <div class="settings-row">
+              <div><div class="settings-key">Supabase Project URL</div><div class="settings-val" id="sbUrlDisplay" style="max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Not set</div></div>
+            </div>
+            <div class="form-group" style="margin-top:10px;"><label class="form-label">Update Project URL</label><input class="form-input" id="adminSbUrl" placeholder="https://xxxx.supabase.co"/></div>
+            <div class="form-group" style="margin-bottom:0;"><label class="form-label">Update Anon Key</label><input class="form-input" id="adminSbKey" placeholder="eyJhbGci..." type="password"/></div>
+            <div style="margin-top:12px;"><button class="btn btn-secondary btn-sm" onclick="adminUpdateSupabase()">Update config</button></div>
           </div>
           <div class="card">
             <div class="settings-title">Danger zone</div>
@@ -875,6 +884,10 @@ function launchApp() {
     document.getElementById('setTerms').value  = PROFILE.inv_terms || 30;
     document.getElementById('setPrefix').value = PROFILE.inv_prefix || 'INV';
   }
+  // Show current Supabase URL in admin settings (masked)
+  const currentUrl = localStorage.getItem('hisaab_sb_url') || SUPABASE_URL;
+  const sbDisp = document.getElementById('sbUrlDisplay');
+  if (sbDisp) sbDisp.textContent = currentUrl !== 'YOUR_SUPABASE_URL_HERE' ? currentUrl.replace('https://','').slice(0,30)+'...' : 'Not configured';
   setSyncing(false);
   navigate('dashboard');
   // Run automations silently on startup
@@ -1522,6 +1535,16 @@ function saveIntegrations() {
   toast('Integrations saved. WhatsApp is now active!','success');
 }
 
+function adminUpdateSupabase() {
+  const url = document.getElementById('adminSbUrl').value.trim();
+  const key = document.getElementById('adminSbKey').value.trim();
+  if (!url && !key) { toast('Enter URL and/or key to update','error'); return; }
+  if (url) localStorage.setItem('hisaab_sb_url', url);
+  if (key) localStorage.setItem('hisaab_sb_key', key);
+  document.getElementById('sbUrlDisplay').textContent = (url || localStorage.getItem('hisaab_sb_url') || '').slice(0,50) + '...';
+  toast('Config updated — reload the page to reconnect','success');
+}
+
 function confirmDeleteAll() {
   confirm2('Delete all data?','Permanently deletes all invoices and clients. Cannot be undone.',async()=>{
     if (!DEMO && SB) {
@@ -1573,11 +1596,18 @@ window.addEventListener('resize', checkMobile); checkMobile();
 // ══════════════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════════════
+// ── HARDCODED SUPABASE CONFIG ──
+// Replace these two values with your actual Supabase Project URL and Anon Key.
+// Users will NEVER see a setup screen — the app connects automatically.
+// To find these: supabase.com → your project → Settings → API
+const SUPABASE_URL = localStorage.getItem('hisaab_sb_url') ||'https://yymsplhzwgvpyskepnpa.supabase.co;
+const SUPABASE_KEY = localStorage.getItem('hisaab_sb_key') || 'sb_publishable_C6Pt33gjgvuIg2C9JFVa9w_YhB8piBK;
+
 (function init() {
-  const url = localStorage.getItem('hisaab_sb_url');
-  const key = localStorage.getItem('hisaab_sb_key');
-  if (url && key && initSupabase(url, key)) {
-    // Check existing session
+  const configured = SUPABASE_URL !== 'YOUR_SUPABASE_URL_HERE' && SUPABASE_KEY !== 'YOUR_SUPABASE_ANON_KEY_HERE';
+
+  if (configured && initSupabase(SUPABASE_URL, SUPABASE_KEY)) {
+    // Credentials baked in — go straight to login or auto-login
     SB.auth.getSession().then(({ data }) => {
       if (data?.session?.user) {
         USER = data.session.user;
@@ -1587,7 +1617,22 @@ window.addEventListener('resize', checkMobile); checkMobile();
       }
     });
   } else {
-    document.getElementById('setupScreen').style.display = 'flex';
+    // Fallback: check localStorage (in case admin updated via settings)
+    const url = localStorage.getItem('hisaab_sb_url');
+    const key = localStorage.getItem('hisaab_sb_key');
+    if (url && key && initSupabase(url, key)) {
+      SB.auth.getSession().then(({ data }) => {
+        if (data?.session?.user) {
+          USER = data.session.user;
+          loadProfile().then(() => loadAllData().then(() => launchApp()));
+        } else {
+          showAuthScreen();
+        }
+      });
+    } else {
+      // Only show setup if truly nothing is configured (dev/admin only)
+      document.getElementById('setupScreen').style.display = 'flex';
+    }
   }
 })();
 </script>
